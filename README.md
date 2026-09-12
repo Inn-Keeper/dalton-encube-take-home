@@ -47,6 +47,7 @@ Open <http://127.0.0.1:5173>.
 ```sh
 npm test
 npm run test:e2e
+npm run lint
 npm run typecheck
 npm run build
 ```

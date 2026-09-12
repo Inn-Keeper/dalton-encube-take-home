@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
+    "lint": "biome lint .",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc -b",
     "test": "vitest run",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@biomejs/biome": "^2.5.13",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
@@ -30,6 +32,5 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.0"
-  },
-  "packageManager": "pnpm@10.6.5+sha512.cdf928fca20832cd59ec53826492b7dc25dc524d4370b6b4adbf65803d32efaa6c1c88147c0ae4e8d579a6c9eec715757b50d4fa35eea179d868eada4ed043af"
+  }
 }
