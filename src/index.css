@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* Shared palette, breakpoints and motion. Component-specific values remain local.
+   Role names keep common colours consistent when the palette changes. */
+@theme {
+  --color-ink: #253b33;
+  --color-ink-soft: #34372f;
+  --color-muted: #5c6356;
+  --color-canvas: #f5f4f0;
+  /* The 3D ground and the text on it. A cool slate, deliberately cooler than the warm sage panels:
+     it pushes the forms forward as lit objects and keeps the studio light reading as light. */
+  --color-canvas-deep: #212b33;
+  --color-on-canvas: #e4e9ec;
+  --color-on-canvas-muted: #98a3ab;
+  --color-surface: #fffefa;
+  --color-panel: #fbfaf7;
+  --color-rule: #e1e3da;
+  --color-rule-soft: #dddcd3;
+  --color-forest: #244d40;
+  --color-forest-deep: #193d31;
+  --color-pin: #2e5442;
+  --color-sage: #edf0e5;
+  --color-sage-deep: #cfd6c4;
+  --color-amber: #b28f50;
+  /* Darker than --color-amber so white text on it clears AA; the lighter tone is dots only. */
+  --color-amber-deep: #8a6a33;
+  --color-clay: #865641;
+
+  /* The brief's two shapes: a narrower sidebar, then a single stacked column. */
+  --breakpoint-panel: 1000px;
+  --breakpoint-stack: 700px;
+
+  /* Inter is loaded, not merely named: the tracking below was drawn against its metrics.
+     The display serif stays a system face; one decorative line does not justify a second download. */
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+
+  /* Every size carries its leading. An arbitrary `text-[11px]` sets font-size alone and inherits
+     whatever leading is in scope, which is how one size ended up rendering three different ways. */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 1.5;
+  --text-xs: 11px;
+  --text-xs--line-height: 1.5;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.55;
+  --text-base: 15px;
+  --text-base--line-height: 1.55;
+  --text-lg: 19px;
+  --text-lg--line-height: 1.35;
+  --text-xl: 23px;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 26px;
+  --text-2xl--line-height: 1.2;
+  --text-display: clamp(24px, 2.1vw, 32px);
+  --text-display--line-height: 1.15;
+
+  /* One gutter for the canvas column and one for the panel, so stacked elements share an edge. */
+  --spacing-gutter: 30px;
+  --spacing-gutter-tight: 18px;
+  --spacing-panel: 22px;
+
+  --animate-conversation-enter: conversation-enter .26s ease-out;
+  --animate-thread-reveal: thread-reveal .45s ease-out;
+}
+
+/* Opening a thread is the prominent change on selection, so it arrives rather than blinking in. */
+@keyframes conversation-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A brief tint confirms which list entry a pin click selected, since the panel may not have moved. */
+@keyframes thread-reveal {
+  0% { background-color: #dfe7cd; border-color: #a8bd8c; }
+  100% { background-color: var(--color-sage); border-color: var(--color-pin); }
+}
+
+@layer base {
+  :root {
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-canvas);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { margin: 0; min-width: 320px; }
+  button, textarea { font: inherit; }
+  button, a, textarea { -webkit-tap-highlight-color: transparent; }
+}
+
+/* Motion is decoration here; every animation has a static end state that is already correct. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}

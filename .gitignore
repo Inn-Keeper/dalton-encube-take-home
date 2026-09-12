@@ -1,0 +1,18 @@
+# Local working notes and agent configuration
+.local/
+docs/
+.claude/
+.codex/
+.agents/
+
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+.DS_Store
+
+# Local test output
+.vitest/
+test-results/
+playwright-report/
+*.tsbuildinfo

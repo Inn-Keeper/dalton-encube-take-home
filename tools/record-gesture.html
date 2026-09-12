@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Record a trackpad gesture</title>
+<style>
+  :root { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif; color: #253b33; background: #f5f4f0; }
+  body { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100dvh; }
+  main { display: flex; flex-direction: column; min-width: 0; }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  p, li { font-size: 13px; line-height: 1.6; color: #4b5347; }
+  aside { border-left: 1px solid #dddcd3; background: #fbfaf7; padding: 22px; overflow-y: auto; }
+  /* touch-action and a non-passive listener mirror the app, so the captured stream is the one it sees. */
+  #pad { flex: 1; margin: 22px; border: 2px dashed #c2c8ba; border-radius: 12px; background: #fffefa;
+         display: grid; place-items: center; text-align: center; touch-action: none; overscroll-behavior: contain; user-select: none; }
+  #pad[data-armed="true"] { border-color: #2e5442; border-style: solid; }
+  #pad h2 { font-size: 15px; margin: 0 0 6px; }
+  #pad span { font-size: 12px; color: #5c6356; }
+  .bar { display: flex; gap: 8px; align-items: center; padding: 0 22px 22px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 7px; border: 1px solid #dcded2;
+           background: #fffefa; color: #34372f; cursor: pointer; }
+  button.primary { background: #244d40; border-color: #244d40; color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  input { font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 7px; border: 1px solid #dcded2; background: #fffefa; }
+  code { background: #eceee4; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 10px; }
+  th, td { text-align: left; padding: 3px 6px 3px 0; font-variant-numeric: tabular-nums; }
+  th { color: #5c6356; font-weight: 600; }
+  ol { padding-left: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <div id="pad" data-armed="false">
+    <div>
+      <h2>Press Record, then gesture here</h2>
+      <span>Two-finger scroll to pan. Pinch to zoom. Flick and let go to capture momentum.</span>
+    </div>
+  </div>
+  <div class="bar">
+    <button id="record" class="primary">Record</button>
+    <input id="name" value="pan-flick" size="16" aria-label="Trace name">
+    <button id="save" disabled>Save JSON</button>
+    <button id="copy" disabled>Copy</button>
+    <button id="clear" disabled>Clear</button>
+  </div>
+</main>
+<aside>
+  <h1>Record a trackpad gesture</h1>
+  <p>This captures the exact wheel stream your Mac produces, momentum tail included, so the tests can replay it instead of guessing at it.</p>
+  <ol>
+    <li>Press <strong>Record</strong>.</li>
+    <li>Perform one gesture on the pad.</li>
+    <li>Wait for the counter to stop climbing. Momentum keeps sending events after your fingers lift.</li>
+    <li>Press <strong>Stop</strong>, then <strong>Save JSON</strong> into <code>tests/fixtures/</code>.</li>
+  </ol>
+  <p>Name panning traces <code>pan-*</code> and pinch traces <code>pinch-*</code>. The test suite picks up whatever it finds and asserts on each kind.</p>
+  <table>
+    <tr><th>Events</th><td id="count">0</td></tr>
+    <tr><th>Duration</th><td id="span">0 ms</td></tr>
+    <tr><th>Total ΔX</th><td id="dx">0</td></tr>
+    <tr><th>Total ΔY</th><td id="dy">0</td></tr>
+    <tr><th>Delta mode</th><td id="mode">—</td></tr>
+    <tr><th>Ctrl (pinch)</th><td id="ctrl">no</td></tr>
+  </table>
+  <p id="hint"></p>
+</aside>
+<script>
+  const pad = document.getElementById('pad');
+  const ui = Object.fromEntries(['record', 'save', 'copy', 'clear', 'name', 'count', 'span', 'dx', 'dy', 'mode', 'ctrl', 'hint']
+    .map((id) => [id, document.getElementById(id)]));
+  let armed = false;
+  let events = [];
+  let origin = 0;
+
+  // Non-passive and preventDefault, exactly as the app does it: a passive listener here would let the
+  // page scroll and would change the event stream macOS chooses to send.
+  pad.addEventListener('wheel', (event) => {
+    if (!armed) return;
+    event.preventDefault();
+    if (!events.length) origin = event.timeStamp;
+    events.push({
+      t: Math.round((event.timeStamp - origin) * 100) / 100,
+      x: event.deltaX, y: event.deltaY, mode: event.deltaMode, ctrl: event.ctrlKey,
+    });
+    render();
+  }, { passive: false });
+
+  function render() {
+    const last = events.at(-1);
+    ui.count.textContent = String(events.length);
+    ui.span.textContent = `${last ? Math.round(last.t) : 0} ms`;
+    ui.dx.textContent = events.reduce((sum, e) => sum + e.x, 0).toFixed(1);
+    ui.dy.textContent = events.reduce((sum, e) => sum + e.y, 0).toFixed(1);
+    ui.mode.textContent = [...new Set(events.map((e) => e.mode))].join(', ') || '—';
+    ui.ctrl.textContent = events.some((e) => e.ctrl) ? 'yes, pinch' : 'no';
+    for (const id of ['save', 'copy', 'clear']) ui[id].disabled = events.length === 0;
+  }
+
+  function trace() {
+    return {
+      name: ui.name.value.trim() || 'gesture',
+      recorded: new Date().toISOString(),
+      platform: navigator.platform,
+      userAgent: navigator.userAgent,
+      events,
+    };
+  }
+
+  ui.record.addEventListener('click', () => {
+    armed = !armed;
+    if (armed) { events = []; render(); }
+    pad.dataset.armed = String(armed);
+    ui.record.textContent = armed ? 'Stop' : 'Record';
+    ui.hint.textContent = armed ? 'Recording. Gesture on the pad.' : '';
+  });
+
+  ui.save.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(trace(), null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${trace().name}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    ui.hint.textContent = 'Saved. Move it into tests/fixtures/.';
+  });
+
+  // Clipboard needs a secure context; localhost qualifies, a file:// page does not.
+  ui.copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(trace(), null, 2));
+      ui.hint.textContent = 'Copied to the clipboard.';
+    } catch {
+      ui.hint.textContent = 'Clipboard unavailable here. Use Save JSON instead.';
+    }
+  });
+
+  ui.clear.addEventListener('click', () => { events = []; render(); ui.hint.textContent = ''; });
+</script>
+</body>
+</html>
