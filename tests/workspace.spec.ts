@@ -654,6 +654,24 @@ test('mobile browsers without the Fullscreen API offer an honest focus view', as
   expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
 });
 
+test('mobile browsers fall back to focus view when native fullscreen is rejected', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Document.prototype, 'fullscreenEnabled', { configurable: true, get: () => true });
+    Element.prototype.requestFullscreen = () => Promise.reject(new DOMException('Not allowed', 'NotAllowedError'));
+  });
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await ready(page);
+  const fullscreen = page.getByRole('button', { name: 'Fullscreen', exact: true });
+
+  await fullscreen.click();
+  const focusView = page.getByRole('button', { name: 'Focus view', exact: true });
+  await expect(focusView).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#root > div')).toHaveAttribute('data-focus-view', 'true');
+  await expect(page.locator('#root > div > header')).toBeHidden();
+  expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+});
+
 test('the Open filter counts outstanding conversations as they are resolved', async ({ page }) => {
   await page.goto('/');
   await ready(page);

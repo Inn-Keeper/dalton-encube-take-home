@@ -8,7 +8,9 @@ export type FullscreenState = { active: boolean; nativeSupported: boolean; suppo
 export function useFullscreen(): FullscreenState {
   const [nativeActive, setNativeActive] = useState(false);
   const [focusActive, setFocusActive] = useState(false);
-  const nativeSupported = typeof document !== 'undefined' && document.fullscreenEnabled;
+  const [nativeSupported, setNativeSupported] = useState(
+    () => typeof document !== 'undefined' && document.fullscreenEnabled,
+  );
 
   useEffect(() => {
     function sync() { setNativeActive(document.fullscreenElement !== null); }
@@ -30,7 +32,10 @@ export function useFullscreen(): FullscreenState {
   const toggle = useCallback(() => {
     if (!nativeSupported) return setFocusActive((current) => !current);
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
-    else void document.documentElement.requestFullscreen().catch(() => {});
+    else void document.documentElement.requestFullscreen().catch(() => {
+      setNativeSupported(false);
+      setFocusActive(true);
+    });
   }, [nativeSupported]);
 
   return { active: nativeActive || focusActive, nativeSupported, supported: true, toggle };
