@@ -26,6 +26,7 @@
 ## Conversations
 
 - **Local React state with validated `localStorage`:** sufficient for a small client-only demo; no database abstraction is needed.
+- **Flat replies, not reply-to-reply:** a thread is one anchored place, so its messages stay a single ordered list. Nesting inside a 350px panel costs indentation and gains an argument about where a late reply belongs; Figma and Miro make the same call.
 - **Individual removal:** replies are deleted; the root becomes a tombstone so replies and the pin remain.
 - **Explicit conversation deletion:** only Delete removes the full thread and pin.
 - **Shared confirmation dialog:** discard and delete flows reuse one accessible focus-managed primitive.

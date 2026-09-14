@@ -1,5 +1,7 @@
 # Encube 3D commenting canvas
 
+**Live-demo**: https://dalton-encube-take-home.vercel.app/
+
 A client-side 3D design-review workspace built with React, TypeScript, Vite, Tailwind CSS, and React Three Fiber. No backend.
 
 The workspace contains four static forms, each belonging to its own study.
