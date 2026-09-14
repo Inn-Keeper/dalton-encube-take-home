@@ -21,7 +21,7 @@ import type { FullscreenState } from '../shared/useFullscreen';
 
 // Straight up and straight down read as gimbal noise rather than inspection, so the tilt stops short.
 const MAX_TILT = MathUtils.degToRad(85);
-const RADIANS_PER_PIXEL = 0.008;
+const RADIANS_PER_PIXEL = 0.001;
 const KEY_STEP = MathUtils.degToRad(12);
 // Matches the zoom ease, so a key and a drag settle at the same rate rather than one snapping.
 const KEY_TURN_MS = 220;
