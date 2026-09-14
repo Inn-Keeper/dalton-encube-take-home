@@ -41,4 +41,9 @@
 
 ## Deliberate scope
 
-Not included: backend collaboration, undo/redo, minimap, and bulk actions. Add them only when product requirements justify their state and interaction cost.
+Not included:
+
+- **Backend collaboration:** a potential next step after the current UI is validated. It could use WebSockets or SSE for client communication, potentially backed by Kafka for event streaming.
+- **Undo/redo:** requires additional state-management controls.
+- **Minimap:** requires additional canvas mirroring and is not justified at this initial stage.
+- **Bulk actions:** better defined later, once the commenting-system design is established.

@@ -2,6 +2,11 @@
 
 A client-side 3D design-review workspace built with React, TypeScript, Vite, Tailwind CSS, and React Three Fiber. No backend.
 
+The workspace contains four static forms, each belonging to its own study.
+
+![3D review workspace with four studies and anchored comments](assets/screenshots/workspace-overview.png)
+![Object inspector with comments anchored to a selected study](assets/screenshots/object-inspector.png)
+
 ## Run locally
 
 Requires Node.js 22.12+.
