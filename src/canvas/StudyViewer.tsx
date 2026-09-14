@@ -8,6 +8,7 @@ import { anchorAt, reviewPlaneView, toAnchor, zoomStepFactor } from './coordinat
 import { projectPins } from './projectPins';
 import { Inertia } from './inertia';
 import { ZoomGlide } from './zoomGlide';
+import { TouchPinch } from './touchPinch';
 import { CameraTween } from './cameraTween';
 import { SceneGrid } from './SceneGrid';
 import { StudyInfo } from './StudyInfo';
@@ -77,6 +78,7 @@ export function StudyViewer({ study, fullscreen, threads, selectedId, draft, onP
   const drag = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
   const glide = useRef(new Inertia());
   const zoomGlide = useRef(new ZoomGlide());
+  const touchPinch = useRef(new TouchPinch());
   const homing = useRef(new CameraTween());
   const turning = useRef(new CameraTween());
   const [pins, setPins] = useState<PinPosition[]>([]);
@@ -169,15 +171,34 @@ export function StudyViewer({ study, fullscreen, threads, selectedId, draft, onP
 
   function down(event: PointerEvent<HTMLDivElement>) {
     if (event.target instanceof Element && event.target.closest('button')) return;
+    if (event.pointerType === 'touch') {
+      const midpoint = touchPinch.current.down(event.pointerId, new Vector2(event.clientX, event.clientY));
+      event.currentTarget.setPointerCapture(event.pointerId);
+      if (midpoint) {
+        drag.current = null;
+        glide.current.cancel();
+        zoomGlide.current.cancel();
+        return;
+      }
+      if (touchPinch.current.active) return;
+    }
     glide.current.cancel();
     glide.current.reset();
     homing.current.cancel();
     turning.current.cancel();
     drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === 'touch') {
+      const pinch = touchPinch.current.move(event.pointerId, new Vector2(event.clientX, event.clientY));
+      if (pinch) {
+        zoomBy(pinch.factor);
+        return;
+      }
+      if (touchPinch.current.active) return;
+    }
     const active = drag.current;
     if (!active || active.id !== event.pointerId) return;
     if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > DRAG_SLOP_PX) active.moved = true;
@@ -190,6 +211,11 @@ export function StudyViewer({ study, fullscreen, threads, selectedId, draft, onP
 
   // A stationary click comments, exactly as on the canvas; a turn never leaves one behind.
   function up(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === 'touch' && touchPinch.current.up(event.pointerId)) {
+      drag.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     const active = drag.current;
     drag.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -203,6 +229,14 @@ export function StudyViewer({ study, fullscreen, threads, selectedId, draft, onP
     // where this scene's origin sits nowhere in particular; anchored to the form, a note left beside
     // it stays beside it in both views and turns with it.
     onPlace(toAnchor({ point: hit.point, form: hit.form ?? scene.getObjectByName(name) ?? null }));
+  }
+
+  function cancelPointer(event: PointerEvent<HTMLDivElement>) {
+    touchPinch.current.clear();
+    drag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    glide.current.cancel();
+    zoomGlide.current.cancel();
   }
 
   // A key turns by easing into its step rather than jumping there, so the keyboard feels like the
@@ -257,7 +291,7 @@ export function StudyViewer({ study, fullscreen, threads, selectedId, draft, onP
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onPointerCancel={up}
+        onPointerCancel={cancelPointer}
         onKeyDown={keydown}
       >
         {plane && <SceneGrid plane={plane} />}

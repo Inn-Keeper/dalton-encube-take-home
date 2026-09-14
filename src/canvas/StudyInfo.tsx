@@ -14,17 +14,17 @@ import type { Study } from './studies';
 export function StudyInfo({ study }: { study: Study }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="study-info pointer-events-auto absolute top-4 left-gutter z-20 w-[204px] overflow-hidden rounded-lg border border-[#dfe3d7] bg-[#fffefaee] shadow-[0_3px_14px_#213f3914] backdrop-blur-[3px] max-stack:left-gutter-tight max-stack:w-[184px]">
+    <div className={`study-info pointer-events-auto absolute top-4 left-gutter z-20 overflow-hidden rounded-lg border border-[#dfe3d7] bg-[#fffefaee] shadow-[0_3px_14px_#213f3914] backdrop-blur-[3px] max-stack:left-gutter-tight ${open ? 'w-[204px] max-stack:w-[184px]' : 'w-[204px] max-stack:size-11'}`}>
       {/* The heading sits beside the toggle rather than inside it: a button may only contain
           phrasing content, and swallowing the heading would cost the card its place in the outline. */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
-        <div>
+      <div className={`flex items-center justify-between gap-2 px-3 py-2.5 ${open ? '' : 'max-stack:size-11 max-stack:justify-center max-stack:p-0'}`}>
+        <div className={open ? '' : 'max-stack:hidden'}>
           <span className="block text-[9px] font-bold tracking-[1.1px] text-muted">SELECTED COMPONENT</span>
           <h2 className="mt-0.5 mb-0 text-xs font-medium tracking-[-.2px] text-ink">{study.label}</h2>
         </div>
         <button
           type="button"
-          className={`grid size-6 shrink-0 cursor-pointer place-items-center rounded-md border-0 bg-transparent text-muted transition-colors hover:bg-[#eeeee6] hover:text-ink ${focusRing}`}
+          className={`grid size-6 shrink-0 cursor-pointer place-items-center rounded-md border-0 bg-transparent text-muted transition-colors hover:bg-[#eeeee6] hover:text-ink max-stack:size-11 ${focusRing}`}
           aria-expanded={open}
           aria-controls="study-details"
           aria-label="Part details"

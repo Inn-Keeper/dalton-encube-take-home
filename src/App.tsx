@@ -198,7 +198,7 @@ export default function App() {
     + ' hover:bg-[#f5f6ee] aria-pressed:bg-surface aria-pressed:text-[#254737] aria-pressed:shadow-[0_1px_3px_#293c3114]'
     + ' focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#416d54]';
 
-  return <div className="flex h-dvh flex-col max-stack:h-auto max-stack:min-h-dvh">
+  return <div data-focus-view={fullscreen.active && !fullscreen.nativeSupported ? 'true' : undefined} className={`flex h-dvh flex-col overflow-hidden ${fullscreen.active && !fullscreen.nativeSupported ? 'fixed inset-0 z-[100] bg-canvas' : ''}`}>
     <header className="flex h-14 shrink-0 items-center gap-5 border-b border-rule bg-surface px-gutter max-stack:h-12 max-stack:gap-3 max-stack:px-gutter-tight">
       <div className="flex items-center gap-2 text-lg font-bold tracking-[-.8px] text-forest" aria-label="Encube">
         <svg viewBox="0 0 28 28" aria-hidden="true" className="size-5 fill-none stroke-current stroke-[1.7] [stroke-linejoin:round]"><path d="m14 2 11 6v12l-11 6-11-6V8Zm0 0v12m11-6-11 6L3 8m11 6v12" /></svg>
@@ -213,7 +213,7 @@ export default function App() {
         {/* Fullscreen removes the browser's own chrome, so the way out has to be said somewhere.
             The browser handles the key itself; this only tells you which one. */}
         {fullscreen.active && <span className="flex items-center gap-1.5 rounded-md bg-[#f0f1e9] px-2.5 py-1.5 text-2xs text-muted">
-          Press <Kbd>Esc</Kbd> or <Kbd>F</Kbd> to leave fullscreen
+          Press <Kbd>Esc</Kbd> or <Kbd>F</Kbd> to leave {fullscreen.nativeSupported ? 'fullscreen' : 'focus view'}
         </span>}
         <span className="flex items-center gap-[7px] text-xs text-[#6b776a] max-stack:hidden"><i className="size-[5px] rounded-full bg-[#7e9568]" /> Local demo</span>
         <span className="grid size-7 place-items-center rounded-full bg-[#dce5cd] text-2xs font-bold text-[#546341] outline outline-[#dfe3d6]" title="Posting as Dalton">D</span>
@@ -224,21 +224,21 @@ export default function App() {
     </p>}
     {/* Collapsing animates the column itself, so the canvas grows into the space rather than
         jumping once the panel has gone. Timing matches the conversation entry animation. */}
-    <main className={`grid min-h-0 flex-1 transition-[grid-template-columns,opacity] duration-[.26s] ease-out max-stack:flex max-stack:flex-auto max-stack:flex-col
+    <main data-panel-open={panelOpen} className={`workspace-main grid min-h-0 flex-1 overflow-hidden transition-[grid-template-columns,opacity] duration-[.26s] ease-out max-stack:flex max-stack:flex-col
       ${settling ? 'opacity-55' : 'opacity-100'}
       ${panelOpen ? 'grid-cols-[minmax(0,1fr)_350px] max-panel:grid-cols-[minmax(0,1fr)_310px]' : 'grid-cols-[minmax(0,1fr)_0px] max-panel:grid-cols-[minmax(0,1fr)_0px]'}`}>
-      <div className="relative flex min-h-0 min-w-0 flex-col max-stack:h-[62dvh] max-stack:min-h-[440px]">
+      <div className={`workspace-canvas-column relative flex min-h-0 min-w-0 flex-col ${panelOpen ? 'max-stack:flex-[11_1_0%]' : 'max-stack:flex-1'}`}>
         <div className="flex shrink-0 items-center justify-between px-gutter py-3 max-stack:px-gutter-tight max-stack:py-2.5">
           <div className="flex gap-[3px] rounded-[9px] border border-[#e0e3d8] bg-[#e9ebe3] p-1" role="group" aria-label="Canvas tools">
-            <button ref={panTool} className={toolClass} title="Drag to move the canvas (V)" aria-label="Pan tool" aria-keyshortcuts="v" aria-pressed={mode === 'pan'} onClick={() => setMode('pan')}><span aria-hidden="true" className="text-lg/4">↔</span> Pan <Kbd>V</Kbd></button>
-            <button ref={commentTool} className={toolClass} title="Click a form or empty space to leave a comment (C)" aria-label="Comment tool" aria-keyshortcuts="c" aria-pressed={mode === 'comment'} onClick={() => setMode('comment')}><svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.4]"><path d="M4 3h12a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H8l-5 3V4a1 1 0 0 1 1-1Z" /></svg> Comment <Kbd>C</Kbd></button>
+            <button ref={panTool} className={`${toolClass} max-stack:min-h-11`} title="Drag to move the canvas (V)" aria-label="Pan tool" aria-keyshortcuts="v" aria-pressed={mode === 'pan'} onClick={() => setMode('pan')}><span aria-hidden="true" className="text-lg/4">↔</span> Pan <span className="max-stack:hidden"><Kbd>V</Kbd></span></button>
+            <button ref={commentTool} className={`${toolClass} max-stack:min-h-11`} title="Click a form or empty space to leave a comment (C)" aria-label="Comment tool" aria-keyshortcuts="c" aria-pressed={mode === 'comment'} onClick={() => setMode('comment')}><svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 fill-none stroke-current stroke-[1.4]"><path d="M4 3h12a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H8l-5 3V4a1 1 0 0 1 1-1Z" /></svg> Comment <span className="max-stack:hidden"><Kbd>C</Kbd></span></button>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-xs tracking-[.2px] text-muted max-panel:hidden">4 objects <span className="px-[7px]">·</span> 3D canvas</span>
             {/* Lives on the canvas side so it stays reachable once the panel it controls is gone. */}
             {/* The label is explicit because the word itself is dropped on a phone, where the
                 toolbar has no room for it; the name must stay the same at every width. */}
-            <button ref={commentsToggle} type="button" className={`${quietButton} flex items-center gap-2`} title={panelOpen ? 'Hide the comments sidebar' : 'Show the comments sidebar'} aria-label="Comments" aria-expanded={panelOpen} aria-controls="comments-panel" onClick={() => setPanelOpen((open) => !open)}>
+            <button ref={commentsToggle} type="button" className={`${quietButton} flex items-center gap-2 max-stack:min-h-11`} title={panelOpen ? 'Hide the comments sidebar' : 'Show the comments sidebar'} aria-label="Comments" aria-expanded={panelOpen} aria-controls="comments-panel" onClick={() => setPanelOpen((open) => !open)}>
               <span className="max-stack:hidden">Comments</span>
               <span className="rounded bg-[#eceee4] px-1.5 py-px text-2xs text-muted">{threads.length}</span>
               <svg viewBox="0 0 16 16" aria-hidden="true" className={`size-3.5 fill-none stroke-current stroke-[1.6] transition-transform duration-[.26s] ease-out ${panelOpen ? '' : 'rotate-180'}`}><path d="m6 3 5 5-5 5" /></svg>
@@ -250,7 +250,7 @@ export default function App() {
       </div>
       {/* The panel stays mounted so filters and unsaved text survive a collapse; `inert` is what
           actually removes it, since an overflow-clipped element is still focusable and announced. */}
-      <div inert={!panelOpen} className={`overflow-hidden transition-[height,opacity] duration-[.26s] ease-out max-stack:h-[480px] ${panelOpen ? 'opacity-100' : 'opacity-0 max-stack:h-0'}`}>
+      <div inert={!panelOpen} className={`comments-shell min-h-0 overflow-hidden transition-[height,opacity] duration-[.26s] ease-out ${panelOpen ? 'opacity-100 max-stack:flex-[9_1_0%]' : 'opacity-0 max-stack:h-0 max-stack:flex-none'}`}>
         <CommentsPanel threads={threads} selectedId={selectedId} draftAnchor={draftAnchor} onSelect={(id) => select(id, true)} onClose={close} onCreate={create} onReply={reply} onEdit={edit} onDelete={deleteMessage} onDeleteConversation={deleteConversation} onResolve={resolve} onDirtyChange={reportDirty} />
       </div>
     </main>

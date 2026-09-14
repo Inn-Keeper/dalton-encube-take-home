@@ -28,7 +28,7 @@
 
   /* The brief's two shapes: a narrower sidebar, then a single stacked column. */
   --breakpoint-panel: 1000px;
-  --breakpoint-stack: 700px;
+  --breakpoint-stack: 850px;
 
   /* Inter is loaded, not merely named: the tracking below was drawn against its metrics.
      The display serif stays a system face; one decorative line does not justify a second download. */
@@ -97,3 +97,23 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Width-based stacking suits portrait devices; on a short landscape phone it would leave each
+   stacked region too shallow to operate, so return to the compact side-by-side workspace. */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 850px) {
+  .workspace-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+  }
+  .workspace-main[data-panel-open="false"] { grid-template-columns: minmax(0, 1fr) 0; }
+  .workspace-canvas-column, .comments-shell { height: auto; min-height: 0; }
+  #comments-panel {
+    width: 310px;
+    border-top: 0;
+    border-left: 1px solid var(--color-rule-soft);
+  }
+}
+
+/* The Fullscreen API is absent on some mobile browsers. Focus view cannot hide browser chrome,
+   but it does reclaim the app header and truthfully keeps the workspace inside the visible area. */
+[data-focus-view="true"] > header { display: none; }

@@ -2,7 +2,7 @@
 // size, disabled treatment and focus ring. Kept as strings rather than components: these are
 // styling only, and the elements they land on differ in role, semantics and attributes.
 export const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[#577557]';
-export const baseButton = `cursor-pointer transition-colors disabled:cursor-default disabled:opacity-45 ${focusRing}`;
+export const baseButton = `cursor-pointer transition-colors disabled:cursor-default disabled:opacity-45 max-stack:min-h-11 max-stack:min-w-11 ${focusRing}`;
 export const chipButton = `${baseButton} min-h-[31px] rounded-md border border-[#dcded2] px-2.5 py-1.5 text-xs`;
 export const quietButton = `${chipButton} bg-transparent text-[#616654] hover:bg-[#f0f1e9]`;
 export const primaryButton = `${chipButton} border-forest bg-forest text-white hover:not-disabled:bg-forest-deep`;

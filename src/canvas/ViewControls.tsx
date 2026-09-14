@@ -3,7 +3,7 @@ import type { CameraAction } from '../shared/types';
 import type { FullscreenState } from '../shared/useFullscreen';
 
 // Every control in the cluster shares one shape; only its label and width differ.
-export const zoomButton = 'h-8 min-w-8 cursor-pointer rounded border-none bg-transparent text-lg text-[#52624d] transition-colors'
+export const zoomButton = 'h-8 min-w-8 cursor-pointer rounded border-none bg-transparent text-lg text-[#52624d] transition-colors max-stack:h-9 max-stack:min-w-9'
   + ' hover:bg-sage disabled:cursor-not-allowed disabled:opacity-45'
   + ' focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#416d54]';
 
@@ -19,12 +19,12 @@ type Props = {
  *  the same way. Native titles cost nothing, and every control also carries a label for the keyboard
  *  and screen-reader paths a hover tooltip never reaches. */
 export function ViewControls({ zoom, disabled = false, onAction, children }: Props) {
-  return <div className="pointer-events-auto flex items-center rounded-lg border border-[#dfe3d7] bg-surface p-1 shadow-[0_2px_7px_#253b3308]" role="group" aria-label="Canvas navigation">
+  return <div className="pointer-events-auto flex items-center rounded-lg border border-[#dfe3d7] bg-surface p-1 shadow-[0_2px_7px_#253b3308] max-stack:p-0.5" role="group" aria-label="Canvas navigation">
     <button className={zoomButton} disabled={disabled} title="Zoom out (−)" aria-label="Zoom out" onClick={() => onAction('out')}>−</button>
-    <output className="min-w-[47px] text-center text-xs tabular-nums text-[#4f5e48]" title="Scale at the review plane" aria-label="Zoom level">{zoom}%</output>
+    <output className="min-w-[47px] text-center text-xs tabular-nums text-[#4f5e48] max-stack:min-w-11" title="Scale at the review plane" aria-label="Zoom level">{zoom}%</output>
     <button className={zoomButton} disabled={disabled} title="Zoom in (+)" aria-label="Zoom in" onClick={() => onAction('in')}>+</button>
-    <span className="mx-1 h-4 w-px bg-[#e0e4d8]" />
-    <button className={`${zoomButton} whitespace-nowrap px-[9px] text-xs`} disabled={disabled} title="Return to the starting framing (R)" aria-keyshortcuts="r" aria-label="Reset view" onClick={() => onAction('reset')}>Reset view <span aria-hidden="true" className="pl-1.5 text-xs">↗</span></button>
+    <span className="mx-1 h-4 w-px bg-[#e0e4d8] max-stack:mx-0.5" />
+    <button className={`${zoomButton} whitespace-nowrap px-[9px] text-xs max-stack:px-0`} disabled={disabled} title="Return to the starting framing (R)" aria-keyshortcuts="r" aria-label="Reset view" onClick={() => onAction('reset')}><span className="max-stack:hidden">Reset view</span><span aria-hidden="true" className="pl-1.5 text-xs max-stack:pl-0">↗</span></button>
     {children}
   </div>;
 }
@@ -34,13 +34,15 @@ export function ViewControls({ zoom, disabled = false, onAction, children }: Pro
 export function FullscreenButton({ state }: { state: FullscreenState }) {
   if (!state.supported) return null;
   return <>
-    <span className="mx-1 h-4 w-px bg-[#e0e4d8]" />
+    <span className="mx-1 h-4 w-px bg-[#e0e4d8] max-stack:mx-0.5" />
     <button
       type="button"
       className={`${zoomButton} grid place-items-center`}
-      title={state.active ? 'Leave fullscreen (F)' : 'Fill the screen with the canvas and conversations (F)'}
+      title={state.nativeSupported
+        ? state.active ? 'Leave fullscreen (F)' : 'Fill the screen with the canvas and conversations (F)'
+        : state.active ? 'Leave focus view (F)' : 'Fit the workspace to the visible mobile viewport (F)'}
       aria-keyshortcuts="f"
-      aria-label="Fullscreen"
+      aria-label={state.nativeSupported ? 'Fullscreen' : 'Focus view'}
       aria-pressed={state.active}
       onClick={state.toggle}
     >

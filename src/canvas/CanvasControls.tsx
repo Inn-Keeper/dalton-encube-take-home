@@ -8,6 +8,7 @@ import { CameraTween } from './cameraTween';
 import { ZoomGesture } from './zoomGesture';
 import { Inertia } from './inertia';
 import { ZoomGlide } from './zoomGlide';
+import { TouchPinch } from './touchPinch';
 import { DRAG_SLOP_PX, RESET_DURATION_MS, WHEEL_DELTA_LIMIT } from './tuning';
 import type { CameraAction, DollyLimits, Draft, Mode, PinPosition, PlaneView, Thread } from '../shared/types';
 
@@ -45,6 +46,7 @@ export function CanvasControls({ objects, surface: surfaceRef, mode, threads, dr
   const tween = useRef(new CameraTween());
   const glide = useRef(new Inertia());
   const zoomGlide = useRef(new ZoomGlide());
+  const touchPinch = useRef(new TouchPinch());
   const zoomReference = useRef<number | null>(null);
   const handledAction = useRef<number | null>(null);
   const frameDistance = Math.max(MIN_FRAME_EXTENT, FRAME_HEIGHT / (size.width / size.height))
@@ -149,6 +151,7 @@ export function CanvasControls({ objects, surface: surfaceRef, mode, threads, dr
     const surface: HTMLDivElement = mountedSurface;
     const burst = gesture.current;
     let drag: { id: number; start: Vector2; previous: Vector2; depth: number; moved: boolean; pan: boolean } | null = null;
+    let pinchTarget: { pointer: Vector2; anchor: ReturnType<typeof anchorAt>['point'] } | null = null;
 
     // Bounding-client coordinates stay correct after scrolling, resizing, and panel changes.
     function local(event: MouseEvent | WheelEvent | PointerEvent) {
@@ -184,23 +187,49 @@ export function CanvasControls({ objects, surface: surfaceRef, mode, threads, dr
 
     // Capture keeps a drag coherent even when the pointer leaves the canvas bounds.
     function pointerDown(event: PointerEvent) {
-      if (!event.isPrimary || (event.button !== 0 && event.button !== 1) || (event.target instanceof Element && event.target.closest('button'))) return;
+      if ((event.pointerType !== 'touch' && !event.isPrimary) || (event.button !== 0 && event.button !== 1)
+        || (event.target instanceof Element && event.target.closest('button'))) return;
+      const point = local(event);
+      if (event.pointerType === 'touch') {
+        const midpoint = touchPinch.current.down(event.pointerId, point);
+        surface.setPointerCapture(event.pointerId);
+        if (midpoint) {
+          burst.clear();
+          tween.current.cancel();
+          glide.current.cancel();
+          zoomGlide.current.cancel();
+          drag = null;
+          delete surface.dataset.dragging;
+          pinchTarget = { pointer: midpoint, anchor: anchorAt(midpoint, camera, live.current.size, objects.current?.children ?? []).point };
+          return;
+        }
+        if (touchPinch.current.active) return;
+      }
       burst.clear();
       tween.current.cancel();
       glide.current.cancel();
       glide.current.reset();
       zoomGlide.current.cancel();
       const { size, mode } = live.current;
-      const point = local(event);
       drag = { id: event.pointerId, start: point, previous: point, depth: anchorAt(point, camera, size, objects.current?.children ?? []).point.z, moved: false, pan: mode === 'pan' || event.button === 1 };
-      surface.setPointerCapture(event.pointerId);
+      if (!surface.hasPointerCapture(event.pointerId)) surface.setPointerCapture(event.pointerId);
       if (drag.pan) surface.dataset.dragging = 'true';
     }
 
     // Movement beyond a small slop radius can never become a comment on pointer-up.
     function pointerMove(event: PointerEvent) {
-      if (!drag || drag.id !== event.pointerId) return;
       const point = local(event);
+      if (event.pointerType === 'touch') {
+        const pinch = touchPinch.current.move(event.pointerId, point);
+        if (pinch && pinchTarget) {
+          pinchTarget.pointer.copy(pinch.midpoint);
+          dollyAt(camera, pinchTarget.pointer, pinchTarget.anchor, pinch.factor, live.current.size, live.current.limits);
+          live.current.publish();
+          return;
+        }
+        if (touchPinch.current.active) return;
+      }
+      if (!drag || drag.id !== event.pointerId) return;
       // Outgrowing the slop radius turns any drag into a pan, so Comment mode is never inert.
       if (!drag.moved && point.distanceTo(drag.start) > DRAG_SLOP_PX) {
         drag.moved = true;
@@ -218,6 +247,15 @@ export function CanvasControls({ objects, surface: surfaceRef, mode, threads, dr
 
     // Only a deliberate stationary click creates a draft, including on empty space.
     function pointerUp(event: PointerEvent) {
+      if (event.pointerType === 'touch') {
+        const wasPinching = touchPinch.current.up(event.pointerId);
+        if (wasPinching) {
+          drag = null;
+          pinchTarget = null;
+          if (surface.hasPointerCapture(event.pointerId)) surface.releasePointerCapture(event.pointerId);
+          return;
+        }
+      }
       if (!drag || drag.id !== event.pointerId) return;
       const { size, onPlace } = live.current;
       const create = !drag.pan && !drag.moved;
@@ -278,6 +316,8 @@ export function CanvasControls({ objects, surface: surfaceRef, mode, threads, dr
 
     // Blur and pointer cancellation abandon the gesture outright, momentum included.
     function cancel() {
+      touchPinch.current.clear();
+      pinchTarget = null;
       endDrag();
       glide.current.cancel();
       zoomGlide.current.cancel();

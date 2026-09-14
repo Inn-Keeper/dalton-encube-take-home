@@ -80,7 +80,7 @@ export function CommentsPanel({ threads, selectedId, draftAnchor, onSelect, onCl
 
   return (
     // A fixed width keeps the content from reflowing while the collapsing column animates past it.
-    <aside id="comments-panel" className="flex h-full min-h-0 w-[350px] flex-col border-l border-rule-soft bg-panel text-sm text-ink-soft max-panel:w-[310px] max-stack:h-[480px] max-stack:w-full max-stack:border-l-0 max-stack:border-t max-stack:border-t-[#dfe3d8]" aria-label="Comments">
+    <aside id="comments-panel" className="flex h-full min-h-0 w-[350px] flex-col border-l border-rule-soft bg-panel text-sm text-ink-soft max-panel:w-[310px] max-stack:w-full max-stack:border-l-0 max-stack:border-t max-stack:border-t-[#dfe3d8]" aria-label="Comments">
       {discardOpen && <ConfirmDialog
         title="Discard your changes?"
         description="Your unsaved text will be lost. You can keep editing to finish your thought."

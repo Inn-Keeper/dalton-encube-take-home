@@ -94,7 +94,7 @@ export function Scene({ threads, selectedId, draft, mode, action, onPlace, onSel
     {/* Absolute, never a flex sibling: a heading in flow would steal that strip from the drag surface. */}
     <div inert={inspector !== null} className="canvas-heading pointer-events-none absolute inset-x-0 top-0 z-10 px-gutter pt-3.5 pb-3 max-stack:px-gutter-tight max-stack:pt-1 max-stack:pb-2.5">
       <span className="text-2xs font-bold tracking-[2px] text-on-canvas-muted">EXPLORATION / 001</span>
-      <h2 className="mt-2 mb-[5px] font-serif text-display font-normal tracking-[-.9px] text-on-canvas max-panel:text-2xl">Objects in conversation.</h2>
+      <h2 className="mt-2 mb-[5px] font-serif text-display font-normal tracking-[-.9px] text-on-canvas max-panel:text-2xl max-stack:hidden">Objects in conversation.</h2>
     </div>
     {/* Focusable and key-driven, so the canvas is operable without a pointer. role=application
         tells screen readers to pass arrow keys through rather than use them for reading. */}

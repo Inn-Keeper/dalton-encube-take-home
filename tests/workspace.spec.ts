@@ -116,6 +116,112 @@ test('Retina rendering and narrow layout retain usable controls', async ({ brows
   await context.close();
 });
 
+test('a phone workspace fits its visible viewport without document scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await ready(page);
+
+  expect(await page.evaluate(() => ({ viewport: innerHeight, document: document.documentElement.scrollHeight })))
+    .toEqual({ viewport: 664, document: 664 });
+  await expect(page.locator('#comments-panel')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Objects in conversation.' })).toBeHidden();
+});
+
+test('a physical two-finger gesture zooms the canvas and inspector', async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'CDP supplies genuine multi-touch input');
+  const context = await browser.newContext({ viewport: { width: 390, height: 664 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  await page.goto('/');
+  await ready(page);
+  const box = (await page.locator('.interaction-layer').boundingBox())!;
+  const session = await context.newCDPSession(page);
+
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: box.x + 165, y: box.y + 100 }, { x: box.x + 225, y: box.y + 100 }],
+  });
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: box.x + 125, y: box.y + 100 }, { x: box.x + 265, y: box.y + 100 }],
+  });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+
+  await expect(page.getByLabel('Zoom level')).not.toHaveText('100%');
+  await expect(page.getByLabel('Your comment', { exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Reset view', exact: true }).click();
+  await page.getByRole('button', { name: 'Inspect Ring study', exact: true }).click();
+  const stage = (await page.locator('.study-stage').boundingBox())!;
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: stage.x + 240, y: stage.y + 50 }, { x: stage.x + 300, y: stage.y + 50 }],
+  });
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: stage.x + 220, y: stage.y + 50 }, { x: stage.x + 340, y: stage.y + 50 }],
+  });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.locator('.study-viewer').getByLabel('Zoom level')).not.toHaveText('100%');
+  await context.close();
+});
+
+test('mobile controls balance compact canvas navigation with finger-sized primary actions', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await ready(page);
+
+  // Firefox/WebKit expose a 44px CSS box as 43.99997 through boundingBox, so allow only that
+  // floating-point residue; a genuinely undersized 43px target still fails.
+  const navigation = page.getByRole('group', { name: 'Canvas navigation' }).first();
+  const navigationBox = (await navigation.boundingBox())!;
+  expect(navigationBox.width).toBeLessThanOrEqual(210);
+  expect(navigationBox.height).toBeLessThanOrEqual(42);
+  for (const name of ['Zoom out', 'Zoom in', 'Reset view']) {
+    const box = (await page.getByRole('button', { name, exact: true }).boundingBox())!;
+    expect(box.width, `${name} width`).toBeGreaterThanOrEqual(35.99);
+    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(35.99);
+  }
+
+  const comments = (await page.getByRole('button', { name: 'Comments', exact: true }).boundingBox())!;
+  expect(comments.width).toBeGreaterThanOrEqual(43.99);
+  expect(comments.height).toBeGreaterThanOrEqual(43.99);
+
+  for (const name of ['All', 'Resolved']) {
+    const box = (await page.getByRole('button', { name, exact: true }).boundingBox())!;
+    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(43.99);
+  }
+  await page.getByRole('button', { name: 'Open comment 1 by Maya', exact: true }).click();
+  for (const name of ['Close conversation', 'Delete', 'Resolve']) {
+    const box = (await page.getByRole('button', { name, exact: true }).first().boundingBox())!;
+    expect(box.width, `${name} width`).toBeGreaterThanOrEqual(43.99);
+    expect(box.height, `${name} height`).toBeGreaterThanOrEqual(43.99);
+  }
+});
+
+test('tablet portrait stacks comments instead of squeezing the canvas', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.goto('/');
+  await ready(page);
+  const canvasColumn = (await page.locator('main > div').first().boundingBox())!;
+  const panel = (await page.locator('#comments-panel').boundingBox())!;
+
+  expect(canvasColumn.width).toBe(768);
+  expect(panel.x).toBe(0);
+  expect(panel.y).toBeGreaterThanOrEqual(canvasColumn.y + canvasColumn.height - 1);
+});
+
+test('short phone landscape keeps canvas and comments side by side', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/');
+  await ready(page);
+  const canvasColumn = (await page.locator('main > div').first().boundingBox())!;
+  const panel = (await page.locator('#comments-panel').boundingBox())!;
+
+  expect(panel.x).toBeGreaterThan(0);
+  expect(panel.y).toBe(canvasColumn.y);
+  expect(canvasColumn.height).toBeGreaterThanOrEqual(300);
+});
+
 test('main and inspector canvases cap a 3x display at 2x rendering', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 3 });
   const page = await context.newPage();
@@ -140,8 +246,10 @@ test('comment placement stays aligned in CSS pixels on a 2x display', async ({ b
   await surface.click({ position: click });
 
   const pin = (await page.getByLabel('New comment location').boundingBox())!;
-  expect(pin.x + 5).toBeCloseTo(surfaceBox.x + click.x, 0);
-  expect(pin.y + 31).toBeCloseTo(surfaceBox.y + click.y, 0);
+  // A 2x display can expose a half-CSS-pixel layout edge. That is one physical pixel, so include
+  // the boundary instead of relying on toBeCloseTo(0), whose strict comparison rejects exactly .5.
+  expect(Math.abs(pin.x + 5 - (surfaceBox.x + click.x))).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(pin.y + 31 - (surfaceBox.y + click.y))).toBeLessThanOrEqual(0.5);
 
   await page.getByRole('button', { name: 'Close conversation', exact: true }).click();
   await page.getByRole('button', { name: 'Inspect Ring study', exact: true }).click();
@@ -152,8 +260,8 @@ test('comment placement stays aligned in CSS pixels on a 2x display', async ({ b
   const inspectorClick = { x: stageBox.width / 2, y: stageBox.height * 0.3 };
   await stage.click({ position: inspectorClick });
   const inspectorPin = (await stage.getByLabel('New comment location').boundingBox())!;
-  expect(inspectorPin.x + 5).toBeCloseTo(stageBox.x + inspectorClick.x, 0);
-  expect(inspectorPin.y + 31).toBeCloseTo(stageBox.y + inspectorClick.y, 0);
+  expect(Math.abs(inspectorPin.x + 5 - (stageBox.x + inspectorClick.x))).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(inspectorPin.y + 31 - (stageBox.y + inspectorClick.y))).toBeLessThanOrEqual(0.5);
   await context.close();
 });
 
@@ -206,7 +314,8 @@ test('resize preserves zoom until an explicit reset establishes new framing', as
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await expect(zoom).toHaveText('110%');
   await page.setViewportSize({ width: 800, height: 1000 });
-  await expect(page.locator('canvas')).toHaveJSProperty('width', 490);
+  // Tablet portrait now stacks the panel, so the canvas receives the full viewport width.
+  await expect(page.locator('canvas')).toHaveJSProperty('width', 800);
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await expect(zoom).toHaveText('110%');
   await page.getByRole('button', { name: 'Reset view', exact: true }).click();
@@ -217,7 +326,7 @@ test('zooming out after a tall-to-wide resize never jumps inward', async ({ page
   await page.goto('/');
   await expect(page.getByLabel('Zoom level')).toHaveText('100%');
   await page.setViewportSize({ width: 701, height: 2000 });
-  await expect(page.locator('canvas')).toHaveJSProperty('width', 391);
+  await expect(page.locator('canvas')).toHaveJSProperty('width', 701);
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   for (let i = 0; i < 15; i++) await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   // Zoom eases now, so let the run land before reading it.
@@ -529,6 +638,22 @@ test('fullscreen covers the canvas and the conversations together', async ({ pag
   await expect(button).toHaveAttribute('aria-pressed', 'false');
 });
 
+test('mobile browsers without the Fullscreen API offer an honest focus view', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Document.prototype, 'fullscreenEnabled', { configurable: true, get: () => false });
+  });
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await ready(page);
+  const button = page.getByRole('button', { name: 'Focus view', exact: true });
+
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#root > div')).toHaveAttribute('data-focus-view', 'true');
+  await expect(page.locator('#root > div > header')).toBeHidden();
+  expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+});
+
 test('the Open filter counts outstanding conversations as they are resolved', async ({ page }) => {
   await page.goto('/');
   await ready(page);
@@ -756,6 +881,20 @@ test('the inspector carries a part sheet that collapses out of the way', async (
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Inspect Facet study' }).click();
   await expect(page.locator('.study-info')).toContainText('FRM-003');
+});
+
+test('a collapsed mobile part sheet becomes one compact information control', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await ready(page);
+  await page.getByRole('button', { name: 'Inspect Block study' }).click();
+  const card = page.locator('.study-info');
+  await page.getByRole('button', { name: 'Part details', exact: true }).click();
+  const box = (await card.boundingBox())!;
+
+  expect(box.width).toBeLessThanOrEqual(44);
+  expect(box.height).toBeLessThanOrEqual(44);
+  await expect(card.getByRole('heading', { name: 'Block study' })).toBeHidden();
 });
 
 test('every enabled control shows a pointer cursor', async ({ page }) => {

@@ -17,7 +17,7 @@
 
 ## Navigation
 
-- **Custom controls:** wheel pan, trackpad pinch, pointer-anchored zoom, keyboard input, and fixed camera orientation do not match OrbitControls defaults.
+- **Custom controls:** wheel pan, trackpad and touch pinch, pointer-anchored zoom, keyboard input, and fixed camera orientation do not match OrbitControls defaults.
 - **Target-based zoom:** quick inputs compose correctly while the camera eases toward the result.
 - **Native trackpad momentum:** wheel streams already contain inertia; adding another layer would duplicate it.
 - **Scoped input:** view shortcuts act only on the focused view; fullscreen remains workspace-wide.
@@ -41,4 +41,4 @@
 
 ## Deliberate scope
 
-Not included: backend collaboration, undo/redo, minimap, bulk actions, and touch pinch. Add them only when product requirements justify their state and interaction cost.
+Not included: backend collaboration, undo/redo, minimap, and bulk actions. Add them only when product requirements justify their state and interaction cost.

@@ -18,7 +18,7 @@ Open <http://127.0.0.1:5173>.
 ### Canvas and inspector
 
 - Four reviewable 3D forms on a fixed-orientation perspective canvas.
-- Pan, pointer-anchored zoom, reset, fullscreen, grid, and scale readout.
+- Pan, pointer-anchored zoom, touch pinch, reset, fullscreen, grid, and scale readout.
 - Smooth zoom and drag momentum, disabled by `prefers-reduced-motion`.
 - A separate 360° inspector with shared geometry, comments, controls, and part details.
 - On-demand rendering with device pixel ratio capped at 2.
@@ -29,8 +29,7 @@ Open <http://127.0.0.1:5173>.
 - Surface-anchored comments on the canvas and inspector.
 - Reply, edit, resolve, reopen, and filter conversations.
 - Remove individual comments or replies with confirmation.
-- Removing the root comment keeps its replies and pin; the conversation becomes empty when no visible messages remain.
-- Delete removes the complete conversation and its pin.
+- Removing the root comment keeps its replies and pin; only Delete removes the whole conversation.
 - Pins retain a constant CSS-pixel size, remain numbered consistently, and dim when occluded.
 - Changes persist in validated `localStorage` data.
 
@@ -62,7 +61,6 @@ No recordings are included, so those tests remain skipped.
 
 ## Known gaps
 
-- Touch pinch is not implemented; mobile zoom uses buttons.
 - Subjective Retina quality and device latency require physical-device testing.
 - The production build reports a large-chunk warning.
 - React Three Fiber currently emits an upstream `Three.Clock` deprecation warning.
